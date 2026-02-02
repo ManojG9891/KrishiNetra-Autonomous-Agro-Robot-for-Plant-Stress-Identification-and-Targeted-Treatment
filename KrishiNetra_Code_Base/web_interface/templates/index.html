@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KrishiNetra Control Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Titillium+Web:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="dashboard-container">
+
+        <!-- HEADER -->
+        <header class="dashboard-header">
+            <div class="logo-title">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Krishinetra Logo" class="logo">
+                <h1>KrishiNetra</h1>
+            </div>
+
+            <div class="header-status">
+                <!-- CONNECTION STATUS: Dashboard <-> Pi/Robot -->
+                <div id="server-status" class="status-indicator disconnected">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Disconnected</span>
+                </div>
+
+                <!-- ROBOT STATUS: idle / running / paused / error -->
+                <div id="robot-status" class="status-indicator idle">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Robot</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- LIVE DATA STRIP -->
+        <section class="live-data-strip" id="live-data-strip" style="display:none;">
+            <div class="data-item"><i class="fas fa-shield-alt"></i> Front: <span id="front-us-data">--</span> cm</div>
+            <div class="data-item"><i class="fas fa-ruler-vertical"></i> Side: <span id="side-us-data">--</span> cm
+            </div>
+            <div class="data-item"><i class="fas fa-thermometer-half"></i> Temp: <span id="temp-data">--</span>&deg;C
+            </div>
+            <div class="data-item"><i class="fas fa-tint"></i> Humidity: <span id="humidity-data">--</span>%</div>
+            <div class="data-item"><i class="fas fa-sync-alt"></i> Rotation: <span id="hall-data">--</span></div>
+        </section>
+
+        <!-- MISSION VIEW -->
+        <main id="mission-view" class="mission-grid">
+
+            <!-- LEFT: Live Images -->
+            <div class="mission-column">
+                <!-- Requirement 1: Restructured to be a standard card -->
+                <section class="card">
+                    <div class="card-header">
+                        <h2>Live Plant Scan</h2>
+                    </div>
+                    <div class="image-display-box">
+                        <img id="snapshot-image" src="{{ url_for('static', filename='images/logo.png') }}" alt="Live camera feed" class="startup-logo">
+                    </div>
+                </section>
+            </div>
+
+            <!-- CENTER: Tally -->
+            <div class="mission-column">
+                <!-- ✅ 1B: Card class updated for tighter padding -->
+                <section class="card detections-card">
+                    <div class="card-header">
+                        <h2>Detections This Session</h2>
+                    </div>
+                    <!-- This div will be populated by JS with a tighter table -->
+                    <div id="live-tally-content" class="scrollable-content"></div>
+                </section>
+            </div>
+
+            <!-- RIGHT: Mission tabs -->
+            <div class="mission-column">
+                <section class="card tabs-card">
+
+                    <div id="main-tabs" class="tab-header">
+                        <button class="tab-link active" data-tab="mission">Mission</button>
+                        <button class="tab-link" data-tab="manual">Manual</button>
+                        <button class="tab-link" data-tab="summary">Summary</button>
+                        <button id="btn-emergency" class="control-btn btn-emergency">E-STOP</button>
+                    </div>
+
+                    <div class="right-column-content-wrapper">
+                        <!-- Mission Tab -->
+                        <div class="tab-content" id="mission-tab-content" style="display:block;">
+                            <div id="mission-controls-wrapper"></div>
+                            <hr>
+                            <div class="live-status-panel">
+                                <h3>Live Status</h3>
+                                <!-- Requirement 6: Box for the live status message -->
+                                <div class="status-message-box">
+                                    <p id="live-status-message">Welcome!</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div id="live-session-summary-panel"></div>
+                            <hr>
+                            <h3>Plant-wise Log</h3>
+                            <!-- The parent div now handles scrolling -->
+                            <div id="plant-log-content"></div>
+                        </div>
+
+                        <!-- Manual Tab -->
+                        <div class="tab-content" id="manual-controls" style="display:none;"></div>
+
+                        <!-- Summary Tab -->
+                        <div class="tab-content" id="summary-analytics" style="display:none;">
+                            <div class="summary-tabs">
+                                <button class="summary-tab-link active" data-summary-tab="previous-session">Previous
+                                    Session</button>
+                                <button class="summary-tab-link" data-summary-tab="overall-history">Overall
+                                    History</button>
+                            </div>
+
+                            <!-- ✅ 2C: Added a wrapper div to make content scrollable -->
+                            <div id="previous-session-content" class="summary-tab-content" style="display:block;">
+                                <div id="prev-session-header"></div>
+                                <div id="prev-session-summary-table"></div>
+                                <div class="chart-container"><canvas id="previous-pie-chart"></canvas></div>
+                                <div class="chart-container-large"><canvas id="previous-bar-chart"></canvas></div>
+                            </div>
+
+                            <!-- ✅ 2C: Added a wrapper div to make content scrollable -->
+                            <div id="overall-history-content" class="summary-tab-content" style="display:none;">
+                                <div id="overall-session-header"></div>
+                                <div id="overall-summary-table"></div>
+                                <div class="chart-container"><canvas id="overall-pie-chart"></canvas></div>
+                                <div class="chart-container-large"><canvas id="overall-session-bar-chart"></canvas>
+                                </div>
+                                <div class="chart-container-large"><canvas id="overall-trend-line-chart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+        </main>
+
+        <!-- WIZARD -->
+        <div id="wizard-view" style="display:none;">
+            <div class="wizard-container">
+                <div class="wizard-top-panel">
+                    <div class="wizard-step-card">
+                        <h3>Step 1: Select Field Layout</h3>
+                        <div class="wizard-options">
+                            <button class="wizard-btn layout-btn" data-value="single_row">Single Row</button>
+                            <button class="wizard-btn layout-btn" data-value="multi_row">Multi Row</button>
+                        </div>
+                    </div>
+                    <div class="wizard-step-card">
+                        <h3>Step 2: Select Operation Mode</h3>
+                        <div class="wizard-options">
+                            <button class="wizard-btn opmode-btn" data-value="continuous">Continuous</button>
+                            <button class="wizard-btn opmode-btn" data-value="individual">Individual</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="wizard-step-3" class="wizard-step-card" style="display:none;">
+                    <h3>Step 3: Configure Parameters</h3>
+                    <div class="step-3-content">
+                        <div id="wizard-params-container" class="step-3-left"></div>
+                        <div id="multi-row-table-container" class="step-3-right"></div>
+                    </div>
+                    <button id="save-mission-plan-btn" class="control-btn btn-save">Save Configuration</button>
+                </div>
+            </div>
+
+            <div class="wizard-persistent-controls">
+                <button class="persistent-btn" id="back-to-dashboard-btn">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL (for Image Viewing) -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-btn">&times;</span>
+            <h3 id="modal-title">Image</h3>
+            <img id="modal-image" src="" alt="Detection Image">
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>
